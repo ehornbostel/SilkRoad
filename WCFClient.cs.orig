@@ -1,0 +1,130 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.ServiceModel;
+
+namespace SilkRoad
+{
+    public class WCFClient<T> : IDisposable
+    {
+        private ChannelFactory<T> channelFactory;
+
+<<<<<<< HEAD
+        // TODO Create constructors which take an Endpoint and Binding for those that want to set these programmatically.
+=======
+        // TODO Create constructors which take an Endpoint and Binding for those that want to set these programmatically. ABC
+>>>>>>> Test checkin
+
+        /// <summary>
+        /// Creates a standard channel using the fully qualified name of the channel's interface as the endpoint configuration name.
+        /// </summary>
+        public WCFClient()
+            : this(typeof(T).FullName)
+        {
+        }
+
+        /// <summary>
+        /// Creates a standard channel.
+        /// </summary>
+        /// <param name="endpointConfigurationName">The WCF endpoint configuration name.</param>
+        public WCFClient(string endpointConfigurationName)
+        {
+            channelFactory = new ChannelFactory<T>(endpointConfigurationName);
+            channelFactory.Open();
+            Channel = channelFactory.CreateChannel();
+        }
+
+        /// <summary>
+        /// Creates a Duplex Channel. The fully qualified name of the channel's interface is used as the endpoint configuration name.
+        /// </summary>
+        /// <param name="implementation">The callback implementation.</param>
+        public WCFClient(object implementation)
+            : this(implementation, typeof(T).FullName)
+        {
+        }
+
+        /// <summary>
+        /// Creates a Duplex Channel.
+        /// </summary>
+        /// <param name="implementation">The callback implementation.</param>
+        /// <param name="endpointConfigurationName">The endpoint configuration name.</param>
+        public WCFClient(object implementation, string endpointConfigurationName)
+        {
+            InstanceContext context = new InstanceContext(implementation);
+            channelFactory = new DuplexChannelFactory<T>(context, endpointConfigurationName);
+            channelFactory.Open();
+            Channel = channelFactory.CreateChannel();
+        }
+
+        protected T Channel
+        {
+            get;
+            set;
+        }
+
+        public bool ExecuteAction(Action<T> function)
+        {
+            if (((IClientChannel)Channel).State == CommunicationState.Opened || ((IClientChannel)Channel).State == CommunicationState.Created)
+            {
+                function(Channel);
+                return true;
+            }
+            else
+            {
+                // Try to reconnect
+                try
+                {
+                    Channel = channelFactory.CreateChannel();
+                    function(Channel);
+                    return true;
+                }
+                catch
+                {
+                    // TODO Make this a specific exception.
+                    throw new Exception("Unable to reconnect to service.");
+                }
+            }
+        }
+
+        public void Dispose()
+        {
+            var client = this.Channel as IClientChannel;
+
+            if (client != null)
+            {
+                try
+                {
+                    if (client != null)
+                    {
+                        if (client.State != CommunicationState.Faulted)
+                        {
+                            client.Close();
+                        }
+                        else
+                        {
+                            client.Abort();
+                        }
+                    }
+                }
+                catch (CommunicationException)
+                {
+                    client.Abort();
+                }
+                catch (TimeoutException)
+                {
+                    client.Abort();
+                }
+                catch (Exception)
+                {
+                    client.Abort();
+                    throw;
+                }
+                finally
+                {
+                    client = null;
+                }
+            }
+        }
+    }
+}
