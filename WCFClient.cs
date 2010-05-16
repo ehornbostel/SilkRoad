@@ -59,12 +59,11 @@ namespace SilkRoad
             set;
         }
 
-        public bool ExecuteAction(Action<T> function)
+        public void ExecuteAction(Action<T> function)
         {
             if (((IClientChannel)Channel).State == CommunicationState.Opened || ((IClientChannel)Channel).State == CommunicationState.Created)
             {
                 function(Channel);
-                return true;
             }
             else
             {
@@ -73,7 +72,6 @@ namespace SilkRoad
                 {
                     Channel = channelFactory.CreateChannel();
                     function(Channel);
-                    return true;
                 }
                 catch
                 {
